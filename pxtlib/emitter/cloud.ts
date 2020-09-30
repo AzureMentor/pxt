@@ -2,13 +2,11 @@
 namespace pxt.Cloud {
     import Util = pxtc.Util;
 
-    const baseEndpoint = "https://www.makecode.com";
-    //const baseEndpoint = "http://localhost:5500";
+    //const baseEndpoint = "https://www.makecode.com";
+    const baseEndpoint = "http://localhost:5500";
 
     // hit /api/ to stay on same domain and avoid CORS
     export let apiRoot = (pxt.BrowserUtils.isLocalHost() || Util.isNodeJS) ? `${baseEndpoint}/api/` : "/api/";
-    export let accessToken = "";
-    export let localToken = "";
     let _isOnline = true;
     export let onOffline = () => { };
 
@@ -18,14 +16,9 @@ namespace pxt.Cloud {
         return Promise.delay(1000).then(() => Promise.reject(e))
     }
 
-    export function hasAccessToken() {
-        return !!accessToken
-    }
-
     export function localRequestAsync(path: string, data?: any) {
         return U.requestAsync({
             url: "/api/" + path,
-            headers: { "Authorization": Cloud.localToken },
             method: data ? "POST" : "GET",
             data: data || undefined,
             allowHttpErrors: true
@@ -80,12 +73,6 @@ namespace pxt.Cloud {
             return offlineError(options.url);
         }
         if (!options.headers) options.headers = {}
-        if (pxt.BrowserUtils.isLocalHost()) {
-            if (Cloud.localToken)
-                options.headers["Authorization"] = Cloud.localToken;
-        } else if (accessToken) {
-            options.headers["x-td-access-token"] = accessToken
-        }
         return Util.requestAsync(options)
             .catch(e => handleNetworkError(options, e))
     }
@@ -208,8 +195,6 @@ namespace pxt.Cloud {
         return privateRequestAsync({ url: path, data: data || {}, forceLiveEndpoint }).then(resp => resp.json)
     }
 
-    export function isLoggedIn() { return !!accessToken }
-
     export function isNavigatorOnline() {
         return navigator && navigator.onLine;
     }
@@ -223,12 +208,6 @@ namespace pxt.Cloud {
 
     export function getServiceUrl() {
         return apiRoot.replace(/\/api\/$/, "")
-    }
-
-    export function getUserId() {
-        let m = /^0(\w+)\./.exec(accessToken)
-        if (m) return m[1]
-        return null
     }
 
     export function parseScriptId(uri: string): string {

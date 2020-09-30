@@ -7,7 +7,6 @@ import * as tutorial from "./tutorial";
 import * as container from "./container";
 import * as core from "./core";
 import * as cloud from "./cloud";
-import * as cloudsync from "./cloudsync";
 import * as pkg from "./package";
 
 type ISettingsProps = pxt.editor.ISettingsProps;

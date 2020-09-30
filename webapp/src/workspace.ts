@@ -9,7 +9,6 @@ import * as browserworkspace from "./browserworkspace"
 import * as fileworkspace from "./fileworkspace"
 import * as memoryworkspace from "./memoryworkspace"
 import * as iframeworkspace from "./iframeworkspace"
-import * as cloudsync from "./cloudsync"
 import * as indexedDBWorkspace from "./idbworkspace";
 import * as compiler from "./compiler"
 

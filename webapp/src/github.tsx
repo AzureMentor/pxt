@@ -1,7 +1,6 @@
 import * as React from "react";
 import * as sui from "./sui";
 import * as core from "./core";
-import * as cloudsync from "./cloudsync";
 import * as dialogs from "./dialogs";
 import * as workspace from "./workspace";
 
@@ -71,7 +70,7 @@ export class GithubProvider extends cloudsync.ProviderBase {
         // auth flow if github provider is prsent
         const oAuthSupported = pxt.appTarget
             && !pxt.BrowserUtils.isPxtElectron()
-            && pxt.appTarget.cloud
+            && pxt.appTarget.auth
             && pxt.appTarget.cloud.cloudProviders
             && !!pxt.appTarget.cloud.cloudProviders[this.name];
 
@@ -211,8 +210,7 @@ export class GithubProvider extends cloudsync.ProviderBase {
                                 this.setNewToken(hextoken);
                                 pxt.tickEvent("github.token.ok");
                             }
-                        })
-                        .then(() => cloudsync.syncAsync())
+                        });
                 }
             }).finally(() => core.hideLoading(LOAD_ID))
     }
@@ -239,4 +237,11 @@ export class GithubProvider extends cloudsync.ProviderBase {
             core.hideLoading("creategithub");
         }
     }
+}
+
+export function provider(required?: boolean): GithubProvider {
+    const p = identityProviders().filter(p => p.name == githubprovider.PROVIDER_NAME)[0] as githubprovider.GithubProvider;
+    if (!p && required)
+        U.userError(lf("GitHub not configured in this editor."))
+    return p;
 }

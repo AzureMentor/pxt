@@ -167,6 +167,7 @@ namespace pxt.editor {
         openHomeIfFailed?: boolean;
     }
 
+    /*
     export interface UserInfo {
         id: string;
         userName?: string;
@@ -176,6 +177,7 @@ namespace pxt.editor {
         initials?: string;
         photo?: string;
     }
+    */
 
     export type Activity = "tutorial" | "recipe" | "example";
 

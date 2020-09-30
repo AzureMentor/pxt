@@ -9,7 +9,6 @@ import * as coretsx from "./coretsx";
 import * as data from "./data";
 import * as markedui from "./marked";
 import * as compiler from "./compiler";
-import * as cloudsync from "./cloudsync";
 import * as tutorial from "./tutorial";
 import * as _package from "./package";
 

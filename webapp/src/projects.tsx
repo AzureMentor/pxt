@@ -6,7 +6,6 @@ import * as data from "./data";
 import * as sui from "./sui";
 import * as core from "./core";
 import * as cloud from "./cloud";
-import * as cloudsync from "./cloudsync";
 
 import * as codecard from "./codecard"
 import * as carousel from "./carousel";

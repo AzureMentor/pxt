@@ -7,7 +7,6 @@
 import * as React from "react";
 import * as ReactDOM from "react-dom";
 import * as workspace from "./workspace";
-import * as cloudsync from "./cloudsync";
 import * as data from "./data";
 import * as pkg from "./package";
 import * as core from "./core";
@@ -43,6 +42,8 @@ import * as accessibleblocks from "./accessibleblocks";
 import * as socketbridge from "./socketbridge";
 import * as webusb from "./webusb";
 import * as keymap from "./keymap";
+import * as auth from './auth';
+import * as github from './github';
 
 import * as monaco from "./monaco"
 import * as pxtjson from "./pxtjson"
@@ -1673,7 +1674,7 @@ export class ProjectView
     importHex(data: pxt.cpp.HexFile, options?: pxt.editor.ImportFileOptions) {
         if (!data || !data.meta) {
             if (data && (data as any)[pxt.CONFIG_NAME]) {
-                data = cloudsync.reconstructMeta(data as any)
+                data = reconstructMeta(data as any)
             } else {
                 core.warningNotification(lf("Sorry, we could not recognize this file."))
                 if (options && options.openHomeIfFailed) this.openHome();
@@ -1971,6 +1972,8 @@ export class ProjectView
     }
 
     cloudSignInDialog() {
+        // TODO: Show identity provider select dialog
+        /*
         const providers = cloudsync.providers();
         if (providers.length == 0)
             return;
@@ -1981,9 +1984,11 @@ export class ProjectView
         else {
             this.signInDialog.show();
         }
+        */
     }
 
     cloudSignOut() {
+        /*
         core.confirmAsync({
             header: lf("Sign out"),
             body: lf("You are signing out. Make sure that you commited all your changes, local projects will be deleted."),
@@ -2006,15 +2011,18 @@ export class ProjectView
             }
             return Promise.resolve();
         });
+        */
     }
 
     cloudSignInComplete() {
+        /*
         pxt.log('cloud sign in complete');
         initLogin();
         cloudsync.syncAsync()
             .then(() => {
                 this.forceUpdate();
             }).done();
+        */
     }
 
     ///////////////////////////////////////////////////////////
@@ -2967,7 +2975,7 @@ export class ProjectView
 
     createGitHubRepositoryAsync(): Promise<void> {
         const { projectName, header } = this.state;
-        return cloudsync.githubProvider(true).createRepositoryAsync(projectName, header)
+        return github.provider(true).createRepositoryAsync(projectName, header)
             .then(r => r && this.reloadHeaderAsync());
     }
 
@@ -3237,7 +3245,7 @@ export class ProjectView
 
     showImportGithubDialog() {
         dialogs.showImportGithubDialogAsync()
-            .then(url => {
+            .then((url: string) => {
                 if (url === "NEW") {
                     dialogs.showCreateGithubRepoDialogAsync()
                         .then(url => {
@@ -3972,18 +3980,8 @@ function getEditor() {
     return theEditor
 }
 
-function parseLocalToken() {
-    const qs = core.parseQueryString((location.hash || "#").slice(1).replace(/%local_token/, "local_token"))
-    if (qs["local_token"]) {
-        pxt.storage.setLocal("local_token", qs["local_token"])
-        location.hash = location.hash.replace(/(%23)?[\#\&\?]*local_token.*/, "")
-    }
-    Cloud.localToken = pxt.storage.getLocal("local_token") || "";
-}
-
 function initLogin() {
-    cloudsync.loginCheck()
-    parseLocalToken();
+    auth.authCheck()
 }
 
 function initPacketIO() {
@@ -4092,7 +4090,7 @@ let myexports: any = {
     apiAsync: core.apiAsync,
     assembleCurrent,
     log,
-    cloudsync
+    auth
 };
 (window as any).E = myexports;
 
@@ -4219,7 +4217,7 @@ function handleHash(hash: { cmd: string; arg: string }, loading: boolean): boole
             const repoid = pxt.github.parseRepoId(hash.arg);
             const [ghCmd, ghArg] = hash.arg.split(':', 2);
             pxt.BrowserUtils.changeHash("");
-            const provider = cloudsync.githubProvider();
+            const provider = github.provider();
             if (!provider)
                 return false;
             // #github:owner/user --> import
@@ -4246,6 +4244,11 @@ function handleHash(hash: { cmd: string; arg: string }, loading: boolean): boole
                 return true;
             }
             break;
+        }
+        case "login-callback": {
+            const qs = core.parseQueryString(window.location.href);
+            auth.loginCallback(qs);
+            return true;
         }
     }
 
@@ -4275,6 +4278,7 @@ function isProjectRelatedHash(hash: { cmd: string; arg: string }): boolean {
         case "header":
             return true;
         case "github":
+        case "login":
         default:
             return false;
     }
@@ -4297,7 +4301,7 @@ async function importGithubProject(repoid: string, requireSignin?: boolean) {
         );
         if (!hd) {
             if (requireSignin) {
-                const token = await cloudsync.githubProvider(true).routedLoginAsync(repoid);
+                const token = await github.provider(true).routedLoginAsync(repoid);
                 if (!token.accessToken) { // did not sign in, give up
                     theEditor.openHome();
                     return;
@@ -4384,6 +4388,30 @@ function initExtensionsAsync(): Promise<void> {
             }
             cmds.setExtensionResult(res);
         });
+}
+
+function reconstructMeta(files: pxt.Map<string>) {
+    let cfg = JSON.parse(files[pxt.CONFIG_NAME]) as pxt.PackageConfig
+    let r: pxt.cpp.HexFile = {
+        meta: {
+            cloudId: pxt.CLOUD_ID + pxt.appTarget.id,
+            editor: pxt.BLOCKS_PROJECT_NAME,
+            name: cfg.name,
+        },
+        source: JSON.stringify(files)
+    }
+
+    let hd = JSON.parse(files[cloud.HEADER_JSON] || "{}") as pxt.workspace.Header
+    if (hd) {
+        if (hd.editor)
+            r.meta.editor = hd.editor
+        if (hd.target)
+            r.meta.cloudId = pxt.CLOUD_ID + hd.target
+        if (hd.targetVersion)
+            r.meta.targetVersions = { target: hd.targetVersion }
+    }
+
+    return r
 }
 
 pxt.winrt.captureInitialActivation();
